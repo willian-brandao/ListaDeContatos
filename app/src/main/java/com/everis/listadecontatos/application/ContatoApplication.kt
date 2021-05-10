@@ -9,8 +9,12 @@ class ContatoApplication : Application() {
     var helperDB: HelperDB? = null
     //protect variable
     private set
+    companion object{
+       lateinit var instance : ContatoApplication
+    }
     override fun onCreate() {
         super.onCreate()
+        instance = this
         //intance of helperDB
         helperDB = HelperDB(this)
     }
