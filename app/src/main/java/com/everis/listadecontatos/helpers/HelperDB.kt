@@ -1,59 +1,78 @@
 package com.everis.listadecontatos.helpers
 
+import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import com.everis.listadecontatos.feature.listacontatos.model.ContatosVO
 
-class HelperDB(
-    context: Context?
 
+class HelperDB(
+    context: Context
 ) : SQLiteOpenHelper(context, NOME_BANCO, null, VERSAO_ATUAL) {
 
     companion object{
         private val NOME_BANCO = "contato.db"
-        private val VERSAO_ATUAL = 1
+        private  val VERSAO_ATUAL = 2
     }
-
     val TABLE_NAME = "contato"
-    val COLLUMNS_ID = "id"
-    val COLLUMNS_NAME = "name"
-    val COLLUMNS_PHONE = "phone"
+    val COLUMNS_ID = "id"
+    val COLUMNS_NOME = "nome"
+    val COLUMNS_TELEFONE = "telefone"
     val DROP_TABLE = "DROP TABLE IF EXISTS $TABLE_NAME"
-    val CREATE_TABLE = "CREATE TABLE $TABLE_NAME ("+
-            "$COLLUMNS_ID INTEGER  NOT NULL"+
-            "$COLLUMNS_NAME TEXT NOT NULL"+
-            "$COLLUMNS_PHONE TEXT NOT NULL"+
-            ""+
-            "PRIMARY KEY($COLLUMNS_ID AUTOINCREMENT)"+
+    val CREATE_TABLE = "CREATE TABLE $TABLE_NAME (" +
+            "$COLUMNS_ID INTEGER NOT NULL " +
+            "$COLUMNS_NOME TEXT NOT NULL " +
+            "$COLUMNS_TELEFONE TEXT NOT NULL " +
+            "" +
+            " PRIMARY KEY ($COLUMNS_ID AUTOINCREMENT)"+
             ")"
 
-    //create the instance of database, this function is use when the database is create on first time
     override fun onCreate(db: SQLiteDatabase?) {
         db?.execSQL(CREATE_TABLE)
     }
 
-    //upgrade database. every time when this application is starts, call tha function to verify the atual version
-    override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, nerVersion: Int) {
-        if( oldVersion != nerVersion){
+    override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
+        if ( oldVersion != newVersion){
             db?.execSQL(DROP_TABLE)
         }
         onCreate(db)
     }
-    //function to find elements of list
-    fun buscarContatos(buscar: String) : List<ContatosVO> {
-        val db : SQLiteDatabase = readableDatabase ?: return mutableListOf()
-        var lista : MutableList<ContatosVO> = mutableListOf<ContatosVO>()
-        val sql = "SELECT * FROM $TABLE_NAME "
-        var cursor = db.rawQuery(sql, arrayOf()) ?: return mutableListOf()
-        while( cursor.moveToNext()){
+    fun buscarContatos(busca : String) : List<ContatosVO>{
+        salvarContato(ContatosVO(0, "teste","teste"))
+        val db = readableDatabase ?: return mutableListOf()
+        var lista = mutableListOf<ContatosVO>()
+       val sql = "SELECT * FROM $TABLE_NAME WHERE $COLUMNS_NOME LIKE ?"
+        var buscaPercentual = arrayOf("%$busca%")
+       // var cursor = db.rawQuery(sql, arrayOf(buscaPercentual))
+        var where = "$COLUMNS_NOME LIKE ?"
+        var cursor = db.query(TABLE_NAME, null,where,buscaPercentual,null,null,null)
+        if( cursor == null){
+            db.close()
+            return mutableListOf()
+        }
+        while ( cursor.moveToNext()){
             var contato = ContatosVO(
-                    cursor.getInt( cursor.getColumnIndex(COLLUMNS_ID)),
-                    cursor.getString( cursor.getColumnIndex(COLLUMNS_NAME)),
-                    cursor.getString( cursor.getColumnIndex(COLLUMNS_PHONE))
+                cursor.getInt(cursor.getColumnIndex(COLUMNS_ID)),
+                cursor.getString(cursor.getColumnIndex(COLUMNS_NOME)),
+                cursor.getString(cursor.getColumnIndex(COLUMNS_TELEFONE))
             )
             lista.add(contato)
         }
+        db.close()
         return lista
+
+    }
+    fun salvarContato(contato: ContatosVO){
+        val db = writableDatabase ?: return
+        val sql = "INSERT INTO $TABLE_NAME ( $COLUMNS_NOME, $COLUMNS_TELEFONE) VALUES (?,?)"
+        //outra maneira de inserir dados no banco
+        var content = ContentValues()
+        content.put(COLUMNS_NOME, contato.nome)
+        content.put(COLUMNS_TELEFONE, contato.telefone)
+        db.insert(TABLE_NAME, null, content)
+        //var array = arrayOf(contato.nome,contato.telefone)
+        //db.execSQL(sql,array)
+        db.close()
     }
 }
