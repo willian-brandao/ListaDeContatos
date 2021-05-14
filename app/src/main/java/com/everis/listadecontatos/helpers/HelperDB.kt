@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import androidx.core.content.contentValuesOf
 import com.everis.listadecontatos.feature.listacontatos.model.ContatosVO
 
 
@@ -38,15 +39,26 @@ class HelperDB(
         }
         onCreate(db)
     }
-    fun buscarContatos(busca : String) : List<ContatosVO>{
-        salvarContato(ContatosVO(0, "teste","teste"))
+    fun buscarContatos(busca : String, isBuscaId: Boolean = false) : List<ContatosVO>{
+        //salvarContato(ContatosVO(0, "teste","teste"))
         val db = readableDatabase ?: return mutableListOf()
         var lista = mutableListOf<ContatosVO>()
-       val sql = "SELECT * FROM $TABLE_NAME WHERE $COLUMNS_NOME LIKE ?"
-        var buscaPercentual = arrayOf("%$busca%")
+        val sql = "SELECT * FROM $TABLE_NAME WHERE $COLUMNS_NOME LIKE ?"
+
        // var cursor = db.rawQuery(sql, arrayOf(buscaPercentual))
-        var where = "$COLUMNS_NOME LIKE ?"
-        var cursor = db.query(TABLE_NAME, null,where,buscaPercentual,null,null,null)
+        var where : String? = null
+        var args: Array<String> = arrayOf()
+
+
+        if( isBuscaId){
+            where = "$COLUMNS_ID = ?"
+            args = arrayOf("$busca")
+        }else{
+           where = "$COLUMNS_NOME LIKE ?"
+            args = arrayOf("%$busca%")
+        }
+
+        var cursor = db.query(TABLE_NAME,null,where,args,null,null,null)
         if( cursor == null){
             db.close()
             return mutableListOf()
@@ -75,4 +87,32 @@ class HelperDB(
         //db.execSQL(sql,array)
         db.close()
     }
+
+    fun deletarContato( id: Int){
+        val db = writableDatabase ?: return
+//        val where = "id = ?"
+//        val arg = arrayOf("$id")
+//        db.delete(TABLE_NAME,where,arg)
+
+        val sql = "DELETE FROM $TABLE_NAME WHERE $COLUMNS_ID =?"
+        val arg = arrayOf("$id")
+        db.execSQL(sql, arg)
+        db.close()
+    }
+
+    fun updateContato(contato: ContatosVO){
+        val db = writableDatabase ?: return
+//        val content = contentValuesOf()
+//        content.put(COLUMNS_NOME,contato.nome)
+//        content.put(COLUMNS_TELEFONE,contato.telefone)
+//        val where = "id = ?"
+//        val arg = arrayOf("${contato.id}")
+//        db.update(TABLE_NAME,content,where,arg)
+
+        val sql = "UPDATE $TABLE_NAME SET $COLUMNS_NOME = ?, $COLUMNS_TELEFONE = ? WHERE $COLUMNS_ID = ?"
+        val arg = arrayOf(contato.nome,contato.telefone,contato.id)
+        db.execSQL(sql,arg)
+        db.close()
+    }
+
 }
